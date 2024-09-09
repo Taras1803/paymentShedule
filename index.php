@@ -17,9 +17,6 @@ function getPaymentDay($day)
     return $day->isWeekday() ? $day->previous(Week::FRIDAY) : $day;
 }
 
-
-
-
 $data = [];
 
 $today = Carbon::now();
@@ -44,9 +41,11 @@ $data[] = [
 ];
 // Not current month logic
 for ($i = $today->month + 1; $i <= 12; $i++) {
-    $startOfMonth = Carbon::parse($today->year . '-' . $i . '-01');
-    $bonusDay = Carbon::parse($today->year . '-' . $i . '-15');
-    $endOfMonth = Carbon::parse($today->year . '-' . $i . '-01')->endOfMonth();
+
+    $startOfMonth = $today->copy()->startOfYear()->month($i)->day(1);
+    $bonusDay = $today->copy()->startOfYear()->month($i)->day(15);
+    $endOfMonth = $today->copy()->startOfYear()->month($i)->endOfMonth();
+
     $data[] = [
         'month' => $startOfMonth->format('F'),
         'payment' => getPaymentDay($endOfMonth)->format('d-m-Y'),
