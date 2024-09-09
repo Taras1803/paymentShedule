@@ -2,7 +2,11 @@ Use **Carbon**, for this task it is very good solution
 
 also **symphony dumper** for developing process (not necessary)
 
-The logic propose to way of usages:
+**Installing**
+
+_composer install_
+
+The logic propose to **way of usages**:
 
 1.Without date, starting generate csv from today.
 
