@@ -15,6 +15,8 @@ The logic propose to **way of usages**:
 **EXAMPLES USAGES**
 
 console run: 'php index.php'
+
 console run: 'php index.php 01-01-2022'
+
 console run: 'php index.php 31-03-2022'
 
