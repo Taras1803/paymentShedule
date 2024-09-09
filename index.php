@@ -27,7 +27,7 @@ if(isset($argv[1])){
         $today = Carbon::parse($argv[1]);
         $endOfMonth = $today->copy()->endOfMonth();
     } catch (InvalidFormatException $e) {
-        echo $e->getMessage() . "\n";
+        echo "\033[31m" . $e->getMessage() . "\033[0m" . PHP_EOL;
         die();
     }
 }
