@@ -3,18 +3,18 @@
 require 'vendor/autoload.php';
 
 use Carbon\Carbon;
+use Carbon\CarbonInterface as Week;
 use Carbon\Exceptions\InvalidFormatException;
 
-const WEEKEND = [Carbon::SATURDAY, Carbon::SUNDAY];
 
 function getBonusDay($day)
 {
-    return in_array($day->dayOfWeek, WEEKEND) ? $day->next(Carbon::WEDNESDAY) : $day;
+    return $day->isWeekday() ? $day->next(Week::WEDNESDAY) : $day;
 }
 
 function getPaymentDay($day)
 {
-    return in_array($day->dayOfWeek, WEEKEND) ? $day->previous(Carbon::FRIDAY) : $day;
+    return $day->isWeekday() ? $day->previous(Week::FRIDAY) : $day;
 }
 
 
@@ -39,7 +39,7 @@ if(isset($argv[1])){
 $bonusDay = Carbon::parse($today->year . '-' . $today->month . '-15');
 $data[] = [
     'month' => $today->format('F'),
-    'payment' => in_array($today->dayOfWeek, WEEKEND) && getPaymentDay($endOfMonth) < $today ? '-' : getPaymentDay($endOfMonth)->format('d-m-Y'),
+    'payment' => $today->isWeekday() && getPaymentDay($endOfMonth) < $today ? '-' : getPaymentDay($endOfMonth)->format('d-m-Y'),
     'bonus' => $today->day <= 15 ? getBonusDay($bonusDay)->format('d-m-Y') : '-'
 ];
 // Not current month logic
