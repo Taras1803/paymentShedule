@@ -32,7 +32,7 @@ function generateData(Carbon $today, callable $getBonusDay, callable $getPayment
     ];
 
     // Not current month logic for remaining months
-    foreach (range($today->month + 1, 12) as $month) {
+    for ($month = $today->month + 1; $month <= 12; $month++) {
         $bonusDay = $today->copy()->month($month)->day(15);
         $endOfMonth = $today->copy()->month($month)->endOfMonth();
         $data[] = [
