@@ -1,75 +1,99 @@
 <?php
 
+
 require 'vendor/autoload.php';
 
 use Carbon\Carbon;
-use Carbon\CarbonInterface as Week;
 use Carbon\Exceptions\InvalidFormatException;
 
 const FORMAT = 'd-m-Y';
 
-function getBonusDay($day)
+/**
+ * Get the next Wednesday if the given day is a weekday; otherwise, return the day formatted.
+ *
+ * @param Carbon $day
+ * @return string
+ */
+function getBonusDay(Carbon $day): string
 {
-    return $day->isWeekday() ? $day->next(Week::WEDNESDAY)->format(FORMAT) : $day->format(FORMAT);
+    return $day->isWeekday() ? $day->next(Carbon::WEDNESDAY)->format(FORMAT) : $day->format(FORMAT);
 }
 
-function getPaymentDay($day)
+/**
+ * Get the previous Friday if the given day is a weekday; otherwise, return the day formatted.
+ *
+ * @param Carbon $day
+ * @return Carbon
+ */
+function getPaymentDay(Carbon $day): Carbon
 {
-    return $day->isWeekday() ? $day->previous(Week::FRIDAY) : $day;
+    return $day->isWeekday() ? $day->previous(Carbon::FRIDAY) : $day;
 }
 
-$data = [];
+/**
+ * Generates the data for the current and remaining months in the year.
+ *
+ * @param Carbon $today
+ * @return array
+ */
+function generateData(Carbon $today): array
+{
+    $data = [];
+    $endOfMonth = $today->copy()->endOfMonth();
 
-$today = Carbon::now();
-$endOfMonth = $today->copy()->endOfMonth();
-if(isset($argv[1])){
-    try {
-        $today = Carbon::parse($argv[1]);
-        $endOfMonth = $today->copy()->endOfMonth();
-    } catch (InvalidFormatException $e) {
-        echo "\033[31m" . $e->getMessage() . "\033[0m" . PHP_EOL;
-        die();
-    }
-}
-
-// Current month logic
-$bonusDay = $today->copy()->day(15);
-$data[] = [
-    'month' => $today->format('F'),
-    'payment' => $today->isWeekday() && getPaymentDay($endOfMonth) < $today ? '-' : getPaymentDay($endOfMonth)->format(FORMAT),
-    'bonus' => $today->day <= 15 ? getBonusDay($bonusDay) : '-'
-];
-
-// Not current month logic
-for ($i = $today->month + 1; $i <= 12; $i++) {
-
-    $bonusDay = $today->copy()->month($i)->day(15);
-    $endOfMonth = $today->copy()->month($i)->endOfMonth();
-
+    // Current month logic
+    $bonusDay = $today->copy()->day(15);
     $data[] = [
-        'month' => $today->copy()->month($i)->day(1)->format('F'),
-        'payment' => getPaymentDay($endOfMonth)->format(FORMAT),
-        'bonus' => getBonusDay($bonusDay)
+        'month' => $today->format('F'),
+        'payment' => $today->isWeekday() && getPaymentDay($endOfMonth) < $today ? '-' : getPaymentDay($endOfMonth)->format(FORMAT),
+        'bonus' => $today->day <= 15 ? getBonusDay($bonusDay) : '-',
     ];
+
+    // Not current month logic for remaining months
+    foreach (range($today->month + 1, 12) as $month) {
+        $bonusDay = $today->copy()->month($month)->day(15);
+        $endOfMonth = $today->copy()->month($month)->endOfMonth();
+        $data[] = [
+            'month' => $today->copy()->month($month)->day(1)->format('F'),
+            'payment' => getPaymentDay($endOfMonth)->format(FORMAT),
+            'bonus' => getBonusDay($bonusDay),
+        ];
+    }
+
+    return $data;
 }
 
-// output headers so that the file is downloaded rather than displayed
-header('Content-type: text/csv');
-header('Content-Disposition: attachment; filename="demo.csv"');
+/**
+ * Outputs the data as a CSV file for download.
+ *
+ * @param array $data
+ * @return void
+ */
+function outputCSV(array $data): void
+{
+    header('Content-type: text/csv');
+    header('Content-Disposition: attachment; filename="demo.csv"');
+    header('Pragma: no-cache');
+    header('Expires: 0');
 
-// do not cache the file
-header('Pragma: no-cache');
-header('Expires: 0');
+    $file = fopen('php://output', 'w');
+    fputcsv($file, ['Month', 'Payment', 'Bonus']);
 
-// create a file pointer connected to the output stream
-$file = fopen('php://output', 'w');
+    foreach ($data as $row) {
+        fputcsv($file, $row);
+    }
 
-// send the column headers
-fputcsv($file, ['Month', 'Payment', 'Bonus']);
-
-// output each row of the data
-foreach ($data as $row) {
-    fputcsv($file, $row);
+    fclose($file);
 }
+
+try {
+    $today = isset($argv[1]) ? Carbon::parse($argv[1]) : Carbon::now();
+} catch (InvalidFormatException $e) {
+    echo "\033[31m{$e->getMessage()}\033[0m" . PHP_EOL;
+    exit(1);
+}
+
+$data = generateData($today);
+outputCSV($data);
 
 exit();
