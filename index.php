@@ -6,10 +6,11 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface as Week;
 use Carbon\Exceptions\InvalidFormatException;
 
+const FORMAT = 'd-m-Y';
 
 function getBonusDay($day)
 {
-    return $day->isWeekday() ? $day->next(Week::WEDNESDAY) : $day;
+    return $day->isWeekday() ? $day->next(Week::WEDNESDAY)->format(FORMAT) : $day->format(FORMAT);
 }
 
 function getPaymentDay($day)
@@ -20,7 +21,7 @@ function getPaymentDay($day)
 $data = [];
 
 $today = Carbon::now();
-$endOfMonth = Carbon::now()->endOfMonth();
+$endOfMonth = $today->copy()->endOfMonth();
 if(isset($argv[1])){
     try {
         $today = Carbon::parse($argv[1]);
@@ -32,23 +33,23 @@ if(isset($argv[1])){
 }
 
 // Current month logic
-$bonusDay = Carbon::parse($today->year . '-' . $today->month . '-15');
+$bonusDay = $today->copy()->day(15);
 $data[] = [
     'month' => $today->format('F'),
-    'payment' => $today->isWeekday() && getPaymentDay($endOfMonth) < $today ? '-' : getPaymentDay($endOfMonth)->format('d-m-Y'),
-    'bonus' => $today->day <= 15 ? getBonusDay($bonusDay)->format('d-m-Y') : '-'
+    'payment' => $today->isWeekday() && getPaymentDay($endOfMonth) < $today ? '-' : getPaymentDay($endOfMonth)->format(FORMAT),
+    'bonus' => $today->day <= 15 ? getBonusDay($bonusDay) : '-'
 ];
 
 // Not current month logic
 for ($i = $today->month + 1; $i <= 12; $i++) {
 
-    $bonusDay = $today->copy()->startOfYear()->month($i)->day(15);
-    $endOfMonth = $today->copy()->startOfYear()->month($i)->endOfMonth();
+    $bonusDay = $today->copy()->month($i)->day(15);
+    $endOfMonth = $today->copy()->month($i)->endOfMonth();
 
     $data[] = [
-        'month' => $today->copy()->startOfYear()->month($i)->day(1)->format('F'),
-        'payment' => getPaymentDay($endOfMonth)->format('d-m-Y'),
-        'bonus' => getBonusDay($bonusDay)->format('d-m-Y')
+        'month' => $today->copy()->month($i)->day(1)->format('F'),
+        'payment' => getPaymentDay($endOfMonth)->format(FORMAT),
+        'bonus' => getBonusDay($bonusDay)
     ];
 }
 
