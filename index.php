@@ -7,8 +7,8 @@ use Carbon\Exceptions\InvalidFormatException;
 
 const FORMAT = 'd-m-Y';
 
-$getBonusDay = fn(Carbon $day) => $day->isWeekday() ? $day->next(Carbon::WEDNESDAY)->format(FORMAT) : $day->format(FORMAT);
-$getPaymentDay = fn(Carbon $day) => $day->isWeekday() ? $day->previous(Carbon::FRIDAY) : $day;
+$getBonusDay = fn(Carbon $day) => $day->isWeekend() ? $day->next(Carbon::WEDNESDAY)->format(FORMAT) : $day->format(FORMAT);
+$getPaymentDay = fn(Carbon $day) => $day->isWeekend() ? $day->previous(Carbon::FRIDAY) : $day;
 
 /**
  * Generates the data for the current and remaining months in the year.
@@ -25,9 +25,10 @@ function generateData(Carbon $today, callable $getBonusDay, callable $getPayment
 
     // Current month logic
     $bonusDay = $today->copy()->day(15);
+    $payment = $today->isWeekend() && $getPaymentDay($endOfMonth) < $today ? '-' : $getPaymentDay($endOfMonth)->format(FORMAT);
     $data[] = [
         'month' => $today->format('F'),
-        'payment' => $today->isWeekday() && $getPaymentDay($endOfMonth) < $today ? '-' : $getPaymentDay($endOfMonth)->format(FORMAT),
+        'payment' => $payment,
         'bonus' => $today->day <= 15 ? $getBonusDay($bonusDay) : '-',
     ];
 
