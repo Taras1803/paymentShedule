@@ -1,6 +1,5 @@
 <?php
 
-
 require 'vendor/autoload.php';
 
 use Carbon\Carbon;
@@ -8,35 +7,18 @@ use Carbon\Exceptions\InvalidFormatException;
 
 const FORMAT = 'd-m-Y';
 
-/**
- * Get the next Wednesday if the given day is a weekday; otherwise, return the day formatted.
- *
- * @param Carbon $day
- * @return string
- */
-function getBonusDay(Carbon $day): string
-{
-    return $day->isWeekday() ? $day->next(Carbon::WEDNESDAY)->format(FORMAT) : $day->format(FORMAT);
-}
-
-/**
- * Get the previous Friday if the given day is a weekday; otherwise, return the day formatted.
- *
- * @param Carbon $day
- * @return Carbon
- */
-function getPaymentDay(Carbon $day): Carbon
-{
-    return $day->isWeekday() ? $day->previous(Carbon::FRIDAY) : $day;
-}
+$getBonusDay = fn(Carbon $day) => $day->isWeekday() ? $day->next(Carbon::WEDNESDAY)->format(FORMAT) : $day->format(FORMAT);
+$getPaymentDay = fn(Carbon $day) => $day->isWeekday() ? $day->previous(Carbon::FRIDAY) : $day;
 
 /**
  * Generates the data for the current and remaining months in the year.
  *
  * @param Carbon $today
+ * @param callable $getBonusDay
+ * @param callable $getPaymentDay
  * @return array
  */
-function generateData(Carbon $today): array
+function generateData(Carbon $today, callable $getBonusDay, callable $getPaymentDay): array
 {
     $data = [];
     $endOfMonth = $today->copy()->endOfMonth();
@@ -45,8 +27,8 @@ function generateData(Carbon $today): array
     $bonusDay = $today->copy()->day(15);
     $data[] = [
         'month' => $today->format('F'),
-        'payment' => $today->isWeekday() && getPaymentDay($endOfMonth) < $today ? '-' : getPaymentDay($endOfMonth)->format(FORMAT),
-        'bonus' => $today->day <= 15 ? getBonusDay($bonusDay) : '-',
+        'payment' => $today->isWeekday() && $getPaymentDay($endOfMonth) < $today ? '-' : $getPaymentDay($endOfMonth)->format(FORMAT),
+        'bonus' => $today->day <= 15 ? $getBonusDay($bonusDay) : '-',
     ];
 
     // Not current month logic for remaining months
@@ -55,8 +37,8 @@ function generateData(Carbon $today): array
         $endOfMonth = $today->copy()->month($month)->endOfMonth();
         $data[] = [
             'month' => $today->copy()->month($month)->day(1)->format('F'),
-            'payment' => getPaymentDay($endOfMonth)->format(FORMAT),
-            'bonus' => getBonusDay($bonusDay),
+            'payment' => $getPaymentDay($endOfMonth)->format(FORMAT),
+            'bonus' => $getBonusDay($bonusDay),
         ];
     }
 
@@ -93,7 +75,10 @@ try {
     exit(1);
 }
 
-$data = generateData($today);
+// Generate data using the defined arrow functions.
+$data = generateData($today, $getBonusDay, $getPaymentDay);
+
+// Output the data as CSV.
 outputCSV($data);
 
 exit();
