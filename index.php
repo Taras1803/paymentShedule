@@ -7,8 +7,9 @@ use Carbon\Exceptions\InvalidFormatException;
 
 const FORMAT = 'd-m-Y';
 
+// Define lambda functions for bonus and payment days
 $getBonusDay = fn(Carbon $day) => $day->isWeekend() ? $day->next(Carbon::WEDNESDAY)->format(FORMAT) : $day->format(FORMAT);
-$getPaymentDay = fn(Carbon $day) => $day->isWeekend() ? $day->previous(Carbon::FRIDAY) : $day;
+$getPaymentDay = fn(Carbon $day) => $day->isWeekend() ? $day->previous(Carbon::FRIDAY)->format(FORMAT) : $day->format(FORMAT);
 
 /**
  * Generates the data for the current and remaining months in the year.
@@ -21,24 +22,30 @@ $getPaymentDay = fn(Carbon $day) => $day->isWeekend() ? $day->previous(Carbon::F
 function generateData(Carbon $today, callable $getBonusDay, callable $getPaymentDay): array
 {
     $data = [];
-    $endOfMonth = $today->copy()->endOfMonth();
+    $currentMonth = $today->copy();
 
     // Current month logic
-    $bonusDay = $today->copy()->day(15);
-    $payment = $today->isWeekend() && $getPaymentDay($endOfMonth) < $today ? '-' : $getPaymentDay($endOfMonth)->format(FORMAT);
+    $bonusDay = $currentMonth->copy()->day(15);
+    $endOfMonth = $currentMonth->copy()->endOfMonth();
+    $payment = $today->isWeekend() && Carbon::parse($getPaymentDay($endOfMonth)) < $today ? '-' : $getPaymentDay($endOfMonth);
+
     $data[] = [
-        'month' => $today->format('F'),
+        'month' => $currentMonth->format('F'),
         'payment' => $payment,
         'bonus' => $today->day <= 15 ? $getBonusDay($bonusDay) : '-',
     ];
 
-    // Not current month logic for remaining months
-    for ($month = $today->month + 1; $month <= 12; $month++) {
-        $bonusDay = $today->copy()->month($month)->day(15);
-        $endOfMonth = $today->copy()->month($month)->endOfMonth();
+    // Not current month logic for remaining months;
+    for ($i = 1; $i <= 12 - $today->month; $i++) {
+        // Add one month sequentially
+        $currentMonth->addMonthNoOverflow();
+        $bonusDay = $currentMonth->copy()->day(15);
+        $endOfMonth = $currentMonth->copy()->endOfMonth();
+        $paymentDay = $getPaymentDay($endOfMonth);
+
         $data[] = [
-            'month' => $today->copy()->month($month)->day(1)->format('F'),
-            'payment' => $getPaymentDay($endOfMonth)->format(FORMAT),
+            'month' => $currentMonth->format('F'),
+            'payment' => $paymentDay,
             'bonus' => $getBonusDay($bonusDay),
         ];
     }
